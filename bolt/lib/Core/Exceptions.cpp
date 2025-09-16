@@ -48,6 +48,51 @@ static llvm::cl::opt<bool>
 namespace llvm {
 namespace bolt {
 
+bool BinaryFunction::preParseLSDA(ArrayRef<uint8_t> LSDASectionData,
+                                uint64_t LSDASectionAddress) {
+  assert(CurrentState == State::Disassembled && "unexpected function state");
+
+  if (!getLSDAAddress())
+    return false;
+
+  DWARFDataExtractor Data(
+      StringRef(reinterpret_cast<const char *>(LSDASectionData.data()),
+                LSDASectionData.size()),
+      BC.DwCtx->getDWARFObj().isLittleEndian(),
+      BC.DwCtx->getDWARFObj().getAddressSize());
+  uint64_t Offset = getLSDAAddress() - LSDASectionAddress;
+  assert(Data.isValidOffset(Offset) && "wrong LSDA address");
+
+  const uint8_t LPStartEncoding = Data.getU8(&Offset);
+  if (LPStartEncoding != dwarf::DW_EH_PE_omit) {
+    std::optional<uint64_t> MaybeLPStart = Data.getEncodedPointer(
+        &Offset, LPStartEncoding, Offset + LSDASectionAddress);
+    if (!MaybeLPStart) {
+      BC.errs() << "BOLT-ERROR: unsupported LPStartEncoding: "
+                << (unsigned)LPStartEncoding << '\n';
+      return false;
+    }
+  }
+  const uint8_t TTypeEncoding = Data.getU8(&Offset);
+  if (TTypeEncoding == dwarf::DW_EH_PE_omit)
+      return true;
+  switch (TTypeEncoding & 0x0f) {
+  default:
+    BC.errs() << "BOLT-WARNING: unsupported TTypeEncoding: "
+              << (unsigned)TTypeEncoding << '\n';
+    return false;
+  case dwarf::DW_EH_PE_absptr:
+  case dwarf::DW_EH_PE_signed:
+  case dwarf::DW_EH_PE_udata2:
+  case dwarf::DW_EH_PE_sdata2:
+  case dwarf::DW_EH_PE_udata4:
+  case dwarf::DW_EH_PE_sdata4:
+  case dwarf::DW_EH_PE_udata8:
+  case dwarf::DW_EH_PE_sdata8:
+    return true;
+  }
+}
+
 // Read and dump the .gcc_exception_table section entry.
 //
 // .gcc_except_table section contains a set of Language-Specific Data Areas -
