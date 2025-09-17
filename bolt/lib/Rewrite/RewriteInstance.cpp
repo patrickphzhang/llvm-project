@@ -3381,18 +3381,12 @@ void RewriteInstance::disassembleFunctions() {
       check_error(LSDASection.getError(), "failed to get LSDA section");
       ArrayRef<uint8_t> LSDAData = ArrayRef<uint8_t>(
           LSDASection->getData(), LSDASection->getContents().size());
-      // if (LSDASection->getName() != ".gcc_except_table") {
-      //   // skip this function because parseLSDA can only process gcc_ecept_table, continue
-      //   BC->addFragmentsToSkip(&Function);
-      //   outs() << "[WX_DEBUG]:Skipping function " <<  Function.__wx_binaryfunction_name << "with LSDA in "<< LSDASection->getName() << '\n';
-      //   continue;
-      // }
-      if(!Function.preParseLSDA(LSDAData, LSDASection->getAddress())) {
-        outs() << "[WX_DEBUG]:Skipping function " <<  Function.__wx_binaryfunction_name << "with LSDA in "<< LSDASection->getName() << '\n';
+      if (LSDASection->getName() != ".gcc_except_table") {
+        // skip this function because parseLSDA can only process gcc_ecept_table, continue
         BC->addFragmentsToSkip(&Function);
+        BC->outs() << "[WX_DEBUG]:Skipping function " <<  Function.__wx_binaryfunction_name << "with LSDA in "<< LSDASection->getName() << '\n';
         continue;
       }
-      outs() << "[WX_DEBUG]: Parsing LSDA in "<< LSDASection->getName() << '\n';
       BC->logBOLTErrorsAndQuitOnFatal(
           Function.parseLSDA(LSDAData, LSDASection->getAddress()));
     }
