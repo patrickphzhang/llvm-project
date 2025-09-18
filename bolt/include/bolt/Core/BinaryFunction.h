@@ -677,7 +677,8 @@ private:
       : OriginSection(&Section), Address(Address), Size(Size), BC(BC),
         CodeSectionName(buildCodeSectionName(Name, BC)),
         ColdCodeSectionName(buildColdCodeSectionName(Name, BC)),
-        FunctionNumber(++Count) {
+        FunctionNumber(++Count), 
+	      __wx_binaryfunction_name(Name) {
     Symbols.push_back(BC.Ctx->getOrCreateSymbol(Name));
   }
 
@@ -740,6 +741,7 @@ private:
 public:
   BinaryFunction(BinaryFunction &&) = default;
 
+  std::string __wx_binaryfunction_name;
   using iterator = pointee_iterator<BasicBlockListType::iterator>;
   using const_iterator = pointee_iterator<BasicBlockListType::const_iterator>;
   using reverse_iterator =

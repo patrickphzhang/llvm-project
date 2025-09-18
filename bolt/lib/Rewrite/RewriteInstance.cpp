@@ -3377,6 +3377,12 @@ void RewriteInstance::disassembleFunctions() {
       ErrorOr<BinarySection &> LSDASection =
           BC->getSectionForAddress(Function.getLSDAAddress());
       check_error(LSDASection.getError(), "failed to get LSDA section");
+      if (LSDASection->getName().count("gcc_except_table") == 0) {
+        // skip this function because parseLSDA only processes gcc_exception_table(s).
+        BC->addFragmentsToSkip(&Function);
+        BC->outs() << "[From Patrick]: Skipping function " <<  Function.__wx_binaryfunction_name << " with LSDA in " << LSDASection->getName() << '\n';
+        continue;
+      }
       ArrayRef<uint8_t> LSDAData = ArrayRef<uint8_t>(
           LSDASection->getData(), LSDASection->getContents().size());
       BC->logBOLTErrorsAndQuitOnFatal(
