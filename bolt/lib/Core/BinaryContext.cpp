@@ -1660,7 +1660,7 @@ void BinaryContext::preprocessDWODebugInfo() {
           DwarfUnit->getNonSkeletonUnitDIE(false, AbsolutePath).getDwarfUnit();
       if (!DWOCU->isDWOUnit()) {
         this->outs()
-            << "BOLT-WARNING: Debug Fission: DWO debug information for "
+            << "[From Patrick]: BOLT-WARNING: Debug Fission: DWO debug information for "
             << DWOName
             << " was not retrieved and won't be updated. Please check "
                "relative path.\n";
