@@ -462,7 +462,7 @@ Error ReorderBasicBlocks::runOnFunctions(BinaryContext &BC) {
          Rit != ScoreMap.rend() && I < opts::PrintFuncStat; ++Rit, ++I) {
       BinaryFunction &Function = Rit->second;
 
-      OS << "           Information for function of top: " << (I + 1) << ": \n";
+      OS << "           Information for function of top: " << (I + 1) << ": " << Function.__wx_binaryfunction_name << "\n";
       OS << "             Function Score is: " << Function.getFunctionScore()
          << "\n";
       OS << "             There are " << Function.size()
