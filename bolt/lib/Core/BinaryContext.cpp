@@ -754,6 +754,24 @@ void BinaryContext::populateJumpTables() {
       if (Frag->hasIndirectTargetToSplitFragment())
         addFragmentsToSkip(Frag);
   }
+  if (opts::StrictMode && DataPCRelocations.size()) {
+    // remove ITT notify tab relocations from the list
+    SmallVector<uint64_t, 8> ToErase;
+    for (uint64_t Reloc : DataPCRelocations) {
+      ErrorOr<const BinarySection &> SecOrErr = getSectionForAddress(Reloc);
+      if (!SecOrErr)
+        continue;
+      const BinarySection &Sec = SecOrErr.get();
+      if (Sec.getName() == ".itt_notify_tab")
+        ToErase.push_back(Reloc);
+
+    }
+    if (!ToErase.empty())
+      outs() << "[From Patrick]: Erasing " << ToErase.size()
+               << " .itt_notify_tab relocations.\n";
+    for (uint64_t R : ToErase)
+      DataPCRelocations.erase(R);
+  }
 
   if (opts::StrictMode && DataPCRelocations.size()) {
     LLVM_DEBUG({
