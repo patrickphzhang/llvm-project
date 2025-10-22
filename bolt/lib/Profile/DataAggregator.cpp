@@ -2433,6 +2433,7 @@ std::error_code DataAggregator::writeBATYAML(BinaryContext &BC,
         using namespace yaml::bolt;
         const auto &[BlockOffset, BlockIndex] = getBlock(BI.From.Offset);
         BinaryBasicBlockProfile &YamlBB = YamlBF.Blocks[BlockIndex];
+        YamlBB.Offset = BlockOffset;
         if (BI.To.IsSymbol && BI.To.Name == BI.From.Name && BI.To.Offset != 0) {
           // Internal branch
           const unsigned SuccIndex = getBlock(BI.To.Offset).second;

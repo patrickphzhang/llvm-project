@@ -256,6 +256,7 @@ YAMLProfileWriter::convert(const BinaryFunction &BF, bool UseDFS,
     }
 
     YamlBB.ExecCount = BB->getKnownExecutionCount();
+    YamlBB.Offset = BB->getOffset();
 
     for (const MCInst &Instr : *BB) {
       if (!BC.MIB->isCall(Instr) && !BC.MIB->isIndirectBranch(Instr))

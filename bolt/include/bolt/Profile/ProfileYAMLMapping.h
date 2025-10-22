@@ -142,6 +142,7 @@ struct BinaryBasicBlockProfile {
   std::vector<CallSiteInfo> CallSites;
   std::vector<SuccessorInfo> Successors;
   std::vector<PseudoProbeInfo> PseudoProbes;
+  uint64_t Offset{0};
 
   bool operator==(const BinaryBasicBlockProfile &Other) const {
     return Index == Other.Index;
@@ -165,6 +166,9 @@ template <> struct MappingTraits<bolt::BinaryBasicBlockProfile> {
                        std::vector<bolt::SuccessorInfo>());
     YamlIO.mapOptional("probes", BBP.PseudoProbes,
                        std::vector<bolt::PseudoProbeInfo>());
+    YamlIO.mapOptional("offset", BBP.Offset,
+                       (uint64_t)0);
+    
   }
 };
 
