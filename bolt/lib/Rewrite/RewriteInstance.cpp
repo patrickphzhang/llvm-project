@@ -3350,6 +3350,13 @@ void RewriteInstance::disassembleFunctions() {
     if (!shouldDisassemble(Function))
       continue;
 
+    // skip functions ends with .cold, .cold.N
+    if (FunctionFragmentTemplate.match(Function.__wx_binaryfunction_name)) {
+      BC->outs() << "[From Patrick]: Skipping split function " <<  Function.__wx_binaryfunction_name << '\n';
+      BC->addFragmentsToSkip(&Function);
+      continue;
+    }
+
     if (!Function.isSimple()) {
       assert((!BC->HasRelocations || Function.getSize() == 0 ||
               Function.hasIndirectTargetToSplitFragment()) &&

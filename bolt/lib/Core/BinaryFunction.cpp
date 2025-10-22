@@ -4337,6 +4337,9 @@ DebugAddressRangesVector BinaryFunction::getOutputAddressRanges() const {
     return OutputRanges;
 
   for (BinaryFunction *Frag : Fragments) {
+    if (Frag->isSimple())
+      outs() << "BOLT-Error: simple fragment in non-simple function "
+             << Frag->__wx_binaryfunction_name << '\n';
     assert(!Frag->isSimple() &&
            "fragment of non-simple function should also be non-simple");
     OutputRanges.emplace_back(Frag->getOutputAddress(),
