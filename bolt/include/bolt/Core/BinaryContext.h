@@ -234,6 +234,9 @@ class BinaryContext {
 
   /// Locations of PC-relative relocations in data objects.
   std::unordered_set<uint64_t> DataPCRelocations;
+  
+  /// Locations of PC-relative relocations in data objects that "might" be skipped.
+  std::unordered_set<uint64_t> DataPCRelocationsToSkip;
 
   /// Used in duplicateJumpTable() to uniquely identify a JT clone
   /// Start our IDs with a high number so getJumpTableContainingAddress checks
@@ -1273,6 +1276,11 @@ public:
   /// Register a presence of PC-relative relocation at the given \p Address.
   void addPCRelativeDataRelocation(uint64_t Address) {
     DataPCRelocations.emplace(Address);
+  }
+
+  /// Register a presence of PC-relative relocation that might be skipped at the given \p Address.
+  void addPCRelativeDataRelocationToSkip(uint64_t Address) {
+    DataPCRelocationsToSkip.emplace(Address);
   }
 
   /// Register dynamic relocation at \p Address.

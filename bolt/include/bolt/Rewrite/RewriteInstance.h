@@ -63,6 +63,9 @@ public:
   /// Run all the necessary steps to read, optimize and rewrite the binary.
   Error run();
 
+  /// Scan the binary to check if it is bolt-able.
+  Error scan();
+
   /// Diff this instance against another one. Non-const since we may run passes
   /// to fold identical functions.
   void compare(RewriteInstance &RI2);

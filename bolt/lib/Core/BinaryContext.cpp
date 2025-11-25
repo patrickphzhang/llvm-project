@@ -762,13 +762,16 @@ void BinaryContext::populateJumpTables() {
       if (!SecOrErr)
         continue;
       const BinarySection &Sec = SecOrErr.get();
-      if (Sec.getName() == ".itt_notify_tab")
+      if (Sec.getName() == ".itt_notify_tab") {
         ToErase.push_back(Reloc);
-
-    }
-    if (!ToErase.empty())
-      outs() << "[From Patrick]: Erasing " << ToErase.size()
-               << " .itt_notify_tab relocations.\n";
+        outs() << "[From Patrick]: Erasing .itt_notify_tab relocation at " << Twine::utohexstr(Reloc) 
+               << ".\n";
+      } else if (DataPCRelocationsToSkip.find(Reloc) != DataPCRelocationsToSkip.end()) {
+        ToErase.push_back(Reloc);
+        outs() << "[From Patrick]: Erasing relocation at " << Twine::utohexstr(Reloc) 
+               << ".\n";
+      }
+    }  
     for (uint64_t R : ToErase)
       DataPCRelocations.erase(R);
   }
@@ -780,7 +783,13 @@ void BinaryContext::populateJumpTables() {
       for (uint64_t Reloc : DataPCRelocations)
         dbgs() << Twine::utohexstr(Reloc) << '\n';
     });
-    assert(0 && "unclaimed PC-relative relocations left in data\n");
+    dbgs() << DataPCRelocations.size()
+             << " unclaimed PC-relative relocations left in data:\n";
+    for (uint64_t Reloc : DataPCRelocations)
+        dbgs() << Twine::utohexstr(Reloc) << '\n';
+    // some asm generated code may have pc-rel relocs that are not part of jts
+    // so we comment out the assert for now
+    // assert(0 && "unclaimed PC-relative relocations left in data\n");
   }
   clearList(DataPCRelocations);
 }

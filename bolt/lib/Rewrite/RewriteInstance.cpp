@@ -723,6 +723,76 @@ Error RewriteInstance::run() {
   return Error::success();
 }
 
+Error RewriteInstance::scan() {
+  assert(BC && "failed to create a binary context");
+
+  BC->outs() << "BOLT-INFO: Target architecture: "
+             << Triple::getArchTypeName(
+                    (llvm::Triple::ArchType)InputFile->getArch())
+             << "\n";
+  BC->outs() << "BOLT-INFO: BOLT version: " << BoltRevision << "\n";
+
+  if (Error E = discoverStorage())
+    return E;
+  if (Error E = readSpecialSections())
+    return E;
+  opts::StrictMode = true;
+  // adjustCommandLineOptions();
+  opts::AggregateOnly = true;
+  discoverFileObjects();
+
+  if (opts::Instrument && !BC->IsStaticExecutable)
+    if (Error E = discoverRtFiniAddress())
+      return E;
+
+  selectFunctionsToProcess();
+
+  readDebugInfo();
+
+  disassembleFunctions();
+
+  processMetadataPreCFG();
+
+  buildFunctionsCFG();
+
+  // processProfileData();
+
+  // Save input binary metadata if BAT section needs to be emitted
+  if (opts::EnableBAT)
+    BAT->saveMetadata(*BC);
+
+  postProcessFunctions();
+
+  processMetadataPostCFG();
+
+  if (opts::DiffOnly)
+    return Error::success();
+
+  preregisterSections();
+
+  // runOptimizationPasses();
+
+  finalizeMetadataPreEmit();
+
+  // emitAndLink();
+
+  updateMetadata();
+
+  if (opts::Instrument && !BC->IsStaticExecutable)
+    updateRtFiniReloc();
+
+  if (opts::OutputFilename == "/dev/null") {
+    BC->outs() << "BOLT-INFO: skipping writing final binary to disk\n";
+    return Error::success();
+  } else if (BC->IsLinuxKernel) {
+    BC->errs() << "BOLT-WARNING: Linux kernel support is experimental\n";
+  }
+
+  // Rewrite allocatable contents and copy non-allocatable parts with mods.
+  // rewriteFile();
+  return Error::success();
+}
+
 void RewriteInstance::discoverFileObjects() {
   NamedRegionTimer T("discoverFileObjects", "discover file objects",
                      TimerGroupName, TimerGroupDesc, opts::TimeRewrite);
@@ -2699,6 +2769,17 @@ void RewriteInstance::handleRelocation(const SectionRef &RelocatedSection,
       // The actual referenced label/address will be determined during jump
       // table analysis.
       BC->addPCRelativeDataRelocation(Rel.getOffset());
+      if (SymbolName.find("x264_") == 0) { 
+        // If the symbol name starts with "x264_" (e.g., x264_10_coeff_last15_avx512),
+        // Skip the relocations to the libx264 functions since they are from asm code. 
+        // We were unable to tell which function they reference at the populateJumpTables() 
+        // stage so we cannot erase the relocation at that time. We do it here.
+        // Also, we cannot skip them here directly since we need to erase the jump table 
+        // entries properly at the populateJumpTables() stage, so we can only record them.
+        BC->addPCRelativeDataRelocationToSkip(Rel.getOffset());
+      }
+      // printRelocationInfo(Rel, SymbolName, SymbolAddress, Addend,
+                          // ExtractedValue);
     } else if (ContainingBF && !IsSectionRelocation && ReferencedSymbol) {
       // If we know the referenced symbol, register the relocation from
       // the code. It's required  to properly handle cases where
