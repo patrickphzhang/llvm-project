@@ -700,6 +700,8 @@ Error RewriteInstance::run() {
 
   preregisterSections();
 
+  BC->outs() << "BOLT-INFO: running optimization passes using " << opts::ThreadCount << " threads\n";
+
   runOptimizationPasses();
 
   finalizeMetadataPreEmit();
