@@ -107,6 +107,10 @@ static cl::opt<unsigned>
                   cl::desc("print statistics about basic block ordering"),
                   cl::init(0), cl::cat(BoltOptCategory));
 
+static cl::opt<unsigned> PrintTopNames("print-top-names",
+                       cl::desc("print top@n function names sort by function score"), cl::init(0),
+                       cl::cat(BoltOptCategory));
+
 static cl::opt<bool> PrintLargeFunctions(
     "print-large-functions",
     cl::desc("print functions that could not be overwritten due to excessive "
@@ -440,7 +444,7 @@ Error ReorderBasicBlocks::runOnFunctions(BinaryContext &BC) {
                    100.0 * ModifiedFuncCount.load(std::memory_order_relaxed) /
                        BC.getBinaryFunctions().size());
 
-  if (opts::PrintFuncStat > 0) {
+  if (opts::PrintFuncStat > 0 || opts::PrintTopNames > 0) {
     raw_ostream &OS = BC.outs();
     // Copy all the values into vector in order to sort them
     std::map<uint64_t, BinaryFunction &> ScoreMap;
@@ -449,28 +453,41 @@ Error ReorderBasicBlocks::runOnFunctions(BinaryContext &BC) {
       ScoreMap.insert(std::pair<uint64_t, BinaryFunction &>(
           It->second.getFunctionScore(), It->second));
 
-    OS << "\nBOLT-INFO: Printing Function Statistics:\n\n";
-    OS << "           There are " << BFs.size() << " functions in total. \n";
-    OS << "           Number of functions being modified: "
-       << ModifiedFuncCount.load(std::memory_order_relaxed) << "\n";
-    OS << "           User asks for detailed information on top "
-       << opts::PrintFuncStat << " functions. (Ranked by function score)"
-       << "\n\n";
-    uint64_t I = 0;
-    for (std::map<uint64_t, BinaryFunction &>::reverse_iterator Rit =
-             ScoreMap.rbegin();
-         Rit != ScoreMap.rend() && I < opts::PrintFuncStat; ++Rit, ++I) {
-      BinaryFunction &Function = Rit->second;
+    if (opts::PrintFuncStat > 0) {
+      OS << "\nBOLT-INFO: Printing Function Statistics:\n\n";
+      OS << "           There are " << BFs.size() << " functions in total. \n";
+      OS << "           Number of functions being modified: "
+        << ModifiedFuncCount.load(std::memory_order_relaxed) << "\n";
+      OS << "           User asks for detailed information on top "
+        << opts::PrintFuncStat << " functions. (Ranked by function score)"
+        << "\n\n";
+      uint64_t I = 0;
+      for (std::map<uint64_t, BinaryFunction &>::reverse_iterator Rit =
+              ScoreMap.rbegin();
+          Rit != ScoreMap.rend() && I < opts::PrintFuncStat; ++Rit, ++I) {
+        BinaryFunction &Function = Rit->second;
 
-      OS << "           Information for function of top: " << (I + 1) << ": " << Function.__wx_binaryfunction_name << "\n";
-      OS << "             Function Score is: " << Function.getFunctionScore()
-         << "\n";
-      OS << "             There are " << Function.size()
-         << " number of blocks in this function.\n";
-      OS << "             There are " << Function.getInstructionCount()
-         << " number of instructions in this function.\n";
-      OS << "             The edit distance for this function is: "
-         << FunctionEditDistance.lookup(&Function) << "\n\n";
+        OS << "           Information for function of top: " << (I + 1) << ": " << Function.__wx_binaryfunction_name << "\n";
+        OS << "             Function Score is: " << Function.getFunctionScore()
+          << "\n";
+        OS << "             There are " << Function.size()
+          << " number of blocks in this function.\n";
+        OS << "             There are " << Function.getInstructionCount()
+          << " number of instructions in this function.\n";
+        OS << "             The edit distance for this function is: "
+          << FunctionEditDistance.lookup(&Function) << "\n\n";
+      }
+    }
+    if (opts::PrintTopNames > 0) {
+      uint64_t I = 0;
+      OS << "BOLT-INFO: Printing Top " << opts::PrintTopNames << " Function Names in " << BC.getBinaryFunctions().size() << " functions\n";
+      for (std::map<uint64_t, BinaryFunction &>::reverse_iterator Rit =
+              ScoreMap.rbegin();
+          Rit != ScoreMap.rend() && I < opts::PrintTopNames; ++Rit, ++I) {
+        BinaryFunction &Function = Rit->second;
+
+        OS << "----    " << Function.__wx_binaryfunction_name << "\n";
+      }
     }
   }
   return Error::success();
